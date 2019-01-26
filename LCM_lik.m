@@ -1,32 +1,32 @@
-function [lik, latents] = LCM_lik(x,data,param,opts)
+function [lik, latents] = LCM_lik(alpha,data,opts)
     
     % Compute log-likelihood of data under the latent cause model.
     %
-    % USAGE: [lik, latents] = LCM_lik(x,data,param,[opts])
+    % USAGE: [lik, latents] = LCM_lik(alpha,data,[opts])
     %
     % INPUTS:
-    %   x - parameter vector
+    %   alpha - concentration parameter
     %   data - single-subject data
-    %   param - parameter structure
     %   opts - options structure
     %
     % OUTPUTS:
     %   lik - log-likelihood
-    %   latents - structure containing latent variables
+    %   latents - structure containing latent variables:
+    %               .b - beta coefficient mapping model CR to  measured CR
+    %               .sd - maximum likelihood standard deviation
+    %               .CR - predicted CR
     %
-    % Sam Gershman, July 2016
+    % Sam Gershman, Jan 2019
     
-    % set parameters
-    for i = 1:length(param)
-        opts.(param(i).name) = x(i);
-    end
+    % set concentration parameter
+    opts.alpha = alpha;
     
     % run particle filter
     results = LCM_infer([data.US data.CS],opts);
     
     % use linear regression to fit model output to CR
     N = length(results.V);
-    X = [ones(N,1) results.V];
+    X = results.V;
     b = (X'*X)\(X'*data.CR);                % maximum likelihood regression coefficients
     CRpred = X*b;                           % predicted CR
     sd = sqrt(mean((data.CR - CRpred).^2)); % maximum likelihood standard deviation
