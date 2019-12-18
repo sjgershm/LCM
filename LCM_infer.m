@@ -84,10 +84,12 @@ function results = LCM_infer(X,opts)
         else
             [~,z] = histc(rand(1,M),[0 cumsum(post)]); % multinomial sample
         end
-        Nk(:,z) = Nk(:,z) + 1;
-        N(:,z,x1) = N(:,z,x1) + 1;
-        B(:,z,x0) = B(:,z,x0) + 1;
         
+        for m = 1:M
+            Nk(m,z(m)) = Nk(m,z(m)) + 1;
+            N(m,z(m),x1) = N(m,z(m),x1) + 1;
+            B(m,z(m),x0) = B(m,z(m),x0) + 1;
+        end
     end
     
     % remove unused particles
