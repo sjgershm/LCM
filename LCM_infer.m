@@ -28,6 +28,7 @@ function results = LCM_infer(X,opts)
     % set parameters
     if nargin < 2; opts = []; end
     opts = LCM_opts(opts);
+    M = opts.M;
     a = opts.a;
     b = opts.b;
     results.opts = opts;
@@ -35,50 +36,72 @@ function results = LCM_infer(X,opts)
     % initialization
     if opts.alpha==0; K = 1; else K = opts.K; end
     post = zeros(1,K); post(1) = 1;
-    post0 = zeros(1,K); post0(:,1) = 1;
+    post0 = zeros(M,K); post0(:,1) = 1;
     [T, D] = size(X);
-    N = zeros(K,D);                           % feature-cause co-occurence counts
-    B = zeros(K,D);                           % feature-cause co-occurence counts
-    Nk = zeros(K,1);                            % cause counts
+    N = zeros(M,K,D);                           % feature-cause co-occurence counts
+    B = zeros(M,K,D);                           % feature-cause co-occurence counts
+    Nk = zeros(M,K);                            % cause counts
     results.post = [ones(T,1) zeros(T,K-1)];    % cause assignments
     results.V = zeros(T,1);                     % US predictions
-    z = 1;
+    z = ones(M,1);
     
     % loop over trials
     for t = 1:T
         
         % calculate likelihood
         lik = N;
-        lik(:,X(t,:)==0) = B(:,X(t,:)==0);
-        lik = (lik+a)./(Nk+a+b);
+        lik(:,:,X(t,:)==0) = B(:,:,X(t,:)==0);
         lik = bsxfun(@rdivide,lik+a,Nk+a+b);
         
         if opts.alpha > 0    % only update posterior if concentration parameter is non-zero
             
             % calculate CRP prior
             prior = Nk;
-            prior(z) = prior(z) + opts.stickiness; % add stickiness
-            prior(find(prior==0,1)) = opts.alpha;     % probability of a new latent cause
+            for m = 1:M
+                prior(m,z(m)) = prior(m,z(m)) + opts.stickiness; % add stickiness
+                prior(m,find(prior(m,:)==0,1)) = opts.alpha;     % probability of a new latent cause
+            end
+            prior = bsxfun(@rdivide,prior,sum(prior,2));
             
             % posterior conditional on CS only
-            post = prior.*squeeze(prod(lik(:,2:D),3));
+            post = prior.*squeeze(prod(lik(:,:,2:D),3));
             post0 = bsxfun(@rdivide,post,sum(post,2));
             
             % posterior conditional on CS and US
-            post = post.*squeeze(lik(:,1));
-            post = bsxfun(@rdivide,post,sum(post,2));
+            post = post.*squeeze(lik(:,:,1));
+            post = post / sum(sum(post));
         end
-        results.post(t,:) = post;
+        results.post(t,:) = mean(bsxfun(@rdivide,post,sum(post,2)),1);
         
         % posterior predictive mean for US
-        pUS = (N(:,1)+a)./(Nk+a+b);
-        results.V(t,1) = post0(:)'*pUS(:);
+        pUS = squeeze(N(:,:,1)+a)./(Nk+a+b);
+        results.V(t,1) = post0(:)'*pUS(:)./M;
         
         % sample new particles
         x1 = X(t,:)==1; x0 = X(t,:)==0;
-        [~,z] = max(post);                         % maximum a posteriori
-        
-        Nk(z) = Nk(z) + 1;
-        N(z,x1) = N(z,x1) + 1;
-        B(z,x0) = B(z,x0) + 1;
+
+        if M==1
+            [~,z] = max(post);                         % maximum a posteriori
+            Nk(1,z) = Nk(1,z) + 1;
+            N(1,z,x1) = N(1,z,x1) + 1;
+            B(1,z,x0) = B(1,z,x0) + 1;
+        else
+            NkOld = Nk;
+            NOld = N;
+            BOld = B;
+            for m = 1:M
+                row = min(find(rand() < cumsum(sum(post,2))));
+                Nk(m,:) = NkOld(row,:);
+                N(m,:,:) = NOld(row,:,:);
+                B(m,:,:) = BOld(row,:,:);
+                col = min(find(rand() < cumsum(post(row,:)/sum(post(row,:)))));
+                Nk(m,col) = Nk(m,col) + 1;
+                N(m,col,x1) = N(m,col,x1) + 1;
+                B(m,col,x0) = B(m,col,x0) + 1;
+            end
+        end
     end
+    
+    % remove unused particles
+    ix = mean(results.post)==0;
+    results.post(:,ix) = [];

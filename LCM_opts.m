@@ -18,8 +18,9 @@ function opts = LCM_opts(opts)
     %   opts.alpha = 1      (concentration parameter for Chinese restaurant process prior)
     %   opts.stickiness = 0 (stickiness parameer for Chinese restaurant process prior)
     %   opts.K = 10         (maximum number of latent causes)
+    %   opts.M = 1;         (number of particles; 1 = local MAP)
     %
-    % Sam Gershman, July 2016
+    % Sam Gershman, July 2016, updated Feb 2020
     
     def_opts.a = 1;
     def_opts.b = 1;
