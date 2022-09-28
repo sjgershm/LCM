@@ -28,11 +28,10 @@ function [lik, latents] = LCM_lik(alpha,data,opts)
     % use linear regression to fit model output to CR
     ix = ~isnan(data.CR);	% exclude missing data
     X = results.V(ix);
-    N = length(X);
     b = (X'*X)\(X'*data.CR(ix));                % maximum likelihood regression coefficients
-    CRpred = X*b;                           % predicted CR
-    sd = sqrt(mean((data.CR(ix) - CRpred).^2)); % maximum likelihood standard deviation
-    lik = sum(log(normpdf(data.CR(ix),CRpred,sd)));  % log-likelihood
+    CRpred = results.V*b;                           % predicted CR
+    sd = sqrt(mean((data.CR(ix) - CRpred(ix)).^2)); % maximum likelihood standard deviation
+    lik = sum(log(normpdf(data.CR(ix),CRpred(ix),sd)));  % log-likelihood
     
     % return latent variables
     if nargout > 1
