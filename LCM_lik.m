@@ -15,6 +15,7 @@ function [lik, latents] = LCM_lik(alpha,data,opts)
     %               .b - beta coefficient mapping model CR to  measured CR
     %               .sd - maximum likelihood standard deviation
     %               .CR - predicted CR
+    %               .ix - data points used in the analysis (excluding NaNs)
     %
     % Sam Gershman, Jan 2019
     
@@ -25,12 +26,13 @@ function [lik, latents] = LCM_lik(alpha,data,opts)
     results = LCM_infer([data.US data.CS],opts);
     
     % use linear regression to fit model output to CR
-    N = length(results.V);
-    X = results.V;
-    b = (X'*X)\(X'*data.CR);                % maximum likelihood regression coefficients
+    ix = ~isnan(data.CR);	% exclude missing data
+    X = results.V(ix);
+    N = length(X);
+    b = (X'*X)\(X'*data.CR(ix));                % maximum likelihood regression coefficients
     CRpred = X*b;                           % predicted CR
-    sd = sqrt(mean((data.CR - CRpred).^2)); % maximum likelihood standard deviation
-    lik = sum(log(normpdf(data.CR,CRpred,sd)));  % log-likelihood
+    sd = sqrt(mean((data.CR(ix) - CRpred).^2)); % maximum likelihood standard deviation
+    lik = sum(log(normpdf(data.CR(ix),CRpred,sd)));  % log-likelihood
     
     % return latent variables
     if nargout > 1
@@ -38,4 +40,5 @@ function [lik, latents] = LCM_lik(alpha,data,opts)
         latents.b = b;
         latents.sd = sd;
         latents.CR = CRpred;
+        latents.ix = ix;
     end

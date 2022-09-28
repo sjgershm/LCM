@@ -8,7 +8,7 @@ function results = LCM_fit(data,opts)
     %   data - [nSubjects x 1] structure containing the following fields:
     %           .CR - [nTrials x 1] conditioned response
     %           .CS - [nTrials x nCues] conditioned stimului
-    %           .US - [nTrials x 1] unconditioned response
+    %           .US - [nTrials x 1] unconditioned stimulus
     %   opts (optional) - structure defining LCM options (see LCM_opts.m)
     %
     % OUTPUTS:
