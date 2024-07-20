@@ -27,6 +27,7 @@ function opts = LCM_opts(opts)
     def_opts.alpha = 1;
     def_opts.stickiness = 0;
     def_opts.K = 10;
+    def_opts.M = 1;
     
     if nargin < 1 || isempty(opts)
         opts = def_opts;
